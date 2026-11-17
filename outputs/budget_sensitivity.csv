@@ -1,0 +1,6 @@
+BudgetFraction,BudgetPermits,OptimizedAllocated,BaselineAllocated,OptimizedUnmetDemand,BaselineUnmetDemand,OptimizedObjective,BaselineObjective,OptimizationGain,OptimizationGainPct,BudgetUtilizationPct,FullySatisfiedFacilities,PartiallySatisfiedFacilities,ZeroAllocationFacilities,IsBudgetBinding,MarginalValuePerPermit
+0.0,0,0,0,28839,28839,0.0,0.0,0.0,0.0,0.0,0,0,30,True,0.0
+0.25,7206,7206,7206,21633,21633,19604.47,16530.01,3074.46,18.6,100.0,11,1,18,True,2.7206
+0.5,14412,14412,14412,14427,14427,37259.72,33055.46,4204.26,12.72,100.0,16,1,13,True,2.4501
+0.75,21617,21617,21617,7222,7222,53274.47,49584.58,3689.89,7.44,100.0,19,1,10,True,2.2227
+1.0,28823,28823,28823,16,16,66103.12,66103.12,0.0,0.0,100.0,30,0,0,False,1.7803

@@ -1,0 +1,8 @@
+DayOfWeek,AvgOccupancy,MedianOccupancy,AvgUtilizationPct,RecordCount
+Monday,664.95,472.0,51.52,5383
+Tuesday,679.4,499.0,53.98,5446
+Wednesday,686.43,498.5,54.02,5458
+Thursday,696.76,508.0,54.74,4978
+Friday,665.84,459.0,51.68,4881
+Saturday,603.08,384.0,43.17,4677
+Sunday,497.64,291.0,35.28,4678
