@@ -80,7 +80,7 @@ class TestRedesignedCharts(unittest.TestCase):
         cls.area_stats = load_facility_statistics(cls.df_clean)
         cls.opt_result, cls.comp_df, cls.comp_summary = run_solver_workflow(
             df_clean=cls.df_clean,
-            budget=21617,
+            budget=87,
             demand_method="p95",
             priority_scenario="congestion"
         )
@@ -94,9 +94,9 @@ class TestRedesignedCharts(unittest.TestCase):
         fig = render_utilization_distribution_chart(self.area_stats)
         self.assertIsInstance(fig, go.Figure)
         self.assertEqual(len(fig.data), 1)
-        # Sum of tier counts should be 30 facilities
+        # Sum of tier counts should be 4 facilities
         total_facilities_in_chart = sum(fig.data[0].y)
-        self.assertEqual(total_facilities_in_chart, 30)
+        self.assertEqual(total_facilities_in_chart, 4)
 
     def test_facility_hourly_chart_system(self):
         fig_sys = render_facility_hourly_chart(self.df_clean, facility_code=None)

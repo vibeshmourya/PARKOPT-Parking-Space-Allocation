@@ -1,7 +1,7 @@
 """
 2_Explore_Parking.py
 Section 2: Parking Facilities for PARKOPT.
-Allows users to search, filter, and inspect individual parking facilities,
+Allows users to search, filter, and inspect parking zones and IoT spots,
 monitoring capacity, average/peak occupancy, availability, and diurnal patterns.
 Part of MCA ITOR Project: Optimal Parking Space Allocation Using Linear Programming.
 """
@@ -9,7 +9,7 @@ Part of MCA ITOR Project: Optimal Parking Space Allocation Using Linear Programm
 import streamlit as st
 import pandas as pd
 from dashboard.utils.formatting import (
-    CUSTOM_DASHBOARD_CSS, format_number, format_pct, format_utilization_bar
+    CUSTOM_DASHBOARD_CSS, format_number, format_pct
 )
 from dashboard.utils.data_service import (
     load_cleaned_dataset,
@@ -30,8 +30,8 @@ from dashboard.components.tables import render_facility_summary_table
 def render_explore_parking_page() -> None:
     """
     Renders Section 2: Parking Facilities.
-    Provides facility search, selector, demand tier filters, 5 core metrics,
-    utilization progress indicator, 2 responsive charts, and an expandable data table.
+    Provides zone search, selector, demand tier filters, 5 core metrics,
+    utilization progress indicator, 2 responsive charts, spot-level inspection, and an expandable data table.
     """
     st.markdown(CUSTOM_DASHBOARD_CSS, unsafe_allow_html=True)
     render_sidebar()
@@ -39,9 +39,9 @@ def render_explore_parking_page() -> None:
     # 1. Header
     st.markdown(
         """<div class="hero-card">
-<h1 class="hero-title">Parking Facilities Explorer</h1>
-<div class="hero-subtitle">Facility Capacity, Observed Occupancy & Availability</div>
-<p class="hero-desc">Investigate historical parking patterns across individual Birmingham parking lots. Identify congested bottleneck locations and underutilized parking capacity across different hours.</p>
+<h1 class="hero-title">Smart Parking Zones Explorer</h1>
+<div class="hero-subtitle">Zone Capacity, Observed Occupancy & Sensor Metrics</div>
+<p class="hero-desc">Investigate historical parking patterns across Smart Parking zones (Zone A, B, C, D) and individual sensor bays. Identify congested bottleneck locations and underutilized capacity across 24 operating hours.</p>
 </div>""",
         unsafe_allow_html=True
     )
@@ -58,10 +58,10 @@ def render_explore_parking_page() -> None:
     col_search, col_filter = st.columns([2, 1])
     with col_search:
         selected_facility = st.selectbox(
-            "Select Parking Facility to Inspect:",
-            options=["All Facilities"] + all_facilities,
+            "Select Parking Zone to Inspect:",
+            options=["All Zones"] + all_facilities,
             index=0,
-            help="Select a specific Birmingham municipal parking lot to view detailed metrics."
+            help="Select a specific Smart Parking zone to view detailed operational metrics."
         )
     with col_filter:
         demand_tier_filter = st.selectbox(
@@ -82,11 +82,11 @@ def render_explore_parking_page() -> None:
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
     # 4. Five Core Metrics & Utilization Indicator
-    if selected_facility != "All Facilities":
+    if selected_facility != "All Zones":
         fac_row = area_stats[area_stats["SystemCodeNumber"] == selected_facility].iloc[0]
         f_cap = int(fac_row["Capacity"])
         f_occ = float(fac_row["AvgOccupancy"])
-        f_peak = int(fac_row["PeakOccupancy"]) if "PeakOccupancy" in fac_row else int(fac_row["MaxOccupancy"])
+        f_peak = int(fac_row["MaxOccupancy"])
         f_avail = max(0, f_cap - int(round(f_occ)))
         f_util = float(fac_row["AvgUtilizationPct"])
 
@@ -103,7 +103,7 @@ def render_explore_parking_page() -> None:
         # Easy-to-understand utilization indicator
         tier_label = "High Pressure (≥ 65%)" if f_util >= 65.0 else ("Moderate Demand (40–65%)" if f_util >= 40.0 else "Low Demand (< 40%)")
         tier_color = "#EF4444" if f_util >= 65.0 else ("#F59E0B" if f_util >= 40.0 else "#2563EB")
-        
+
         with st.container(border=True):
             st.markdown(
                 f"""<div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: #0F172A; margin-bottom: 6px;">
@@ -122,7 +122,7 @@ def render_explore_parking_page() -> None:
                 unsafe_allow_html=True
             )
     else:
-        # System Aggregated Metrics across all 30 facilities
+        # System Aggregated Metrics across all 4 zones
         sys_cap = int(area_stats["Capacity"].sum())
         sys_avg_occ = float(area_stats["AvgOccupancy"].sum())
         sys_peak_occ = int(area_stats["MaxOccupancy"].sum())
@@ -130,40 +130,40 @@ def render_explore_parking_page() -> None:
         sys_util = (sys_avg_occ / sys_cap) * 100.0 if sys_cap > 0 else 0.0
 
         render_kpi_row([
-            {"label": "Total Capacity", "value": f"{format_number(sys_cap)} bays", "subtext": "30 monitored lots", "border_left_color": "#2563EB"},
-            {"label": "Average Occupied", "value": f"{format_number(sys_avg_occ, decimals=0)} cars", "subtext": "City-wide average", "border_left_color": "#0F172A"},
-            {"label": "Peak Occupancy", "value": f"{format_number(sys_peak_occ)} cars", "subtext": "Sum of facility peaks", "border_left_color": "#F59E0B"},
-            {"label": "Available Spaces", "value": f"{format_number(sys_avail)} bays", "subtext": "City-wide buffer", "border_left_color": "#10B981"},
-            {"label": "Average Utilization", "value": format_pct(sys_util), "subtext": "System utilization", "border_left_color": "#7E22CE"}
+            {"label": "Total Capacity", "value": f"{format_number(sys_cap)} bays", "subtext": "4 Smart Zones", "border_left_color": "#2563EB"},
+            {"label": "Average Occupied", "value": f"{format_number(sys_avg_occ, decimals=0)} cars", "subtext": "System average", "border_left_color": "#0F172A"},
+            {"label": "Peak Occupancy", "value": f"{format_number(sys_peak_occ)} cars", "subtext": "Sum of zone peaks", "border_left_color": "#F59E0B"},
+            {"label": "Available Spaces", "value": f"{format_number(sys_avail)} bays", "subtext": "System buffer", "border_left_color": "#10B981"},
+            {"label": "Average Utilization", "value": format_pct(sys_util), "subtext": "Overall utilization", "border_left_color": "#7E22CE"}
         ])
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
     # 5. Two Primary Responsive Charts
-    st.subheader("Facility Capacity & Hourly Occupancy Patterns")
+    st.subheader("Zone Capacity & Hourly Occupancy Patterns")
     chart_col1, chart_col2 = st.columns(2)
 
     with chart_col1:
         # Chart 1: Capacity vs Average Occupancy
-        chart_data = filtered_stats if selected_facility == "All Facilities" else area_stats[area_stats["SystemCodeNumber"] == selected_facility]
+        chart_data = filtered_stats if selected_facility == "All Zones" else area_stats[area_stats["SystemCodeNumber"] == selected_facility]
         fig_cap = render_capacity_vs_occupancy_chart(chart_data)
         st.plotly_chart(fig_cap, use_container_width=True)
 
     with chart_col2:
         # Chart 2: Historical Hourly Occupancy Trend
-        target_code = selected_facility if selected_facility != "All Facilities" else None
+        target_code = selected_facility if selected_facility != "All Zones" else None
         fig_hourly = render_facility_hourly_chart(df_clean, target_code)
         st.plotly_chart(fig_hourly, use_container_width=True)
 
     # 6. Detailed Records Hidden Under Expandable Section
-    with st.expander("📋 View Full Facility Dataset (30 Facilities)", expanded=False):
-        st.caption("Complete table of monitored Birmingham parking facilities with physical capacity and historical averages:")
+    with st.expander("📋 View Full Zone Dataset (4 Zones · 193 Sensor Bays)", expanded=False):
+        st.caption("Complete table of monitored Smart Parking zones with physical capacity and historical statistics:")
         render_facility_summary_table(area_stats)
         csv_bytes = area_stats.to_csv(index=False).encode("utf-8")
         st.download_button(
-            label="⬇️ Download Facility Statistics (CSV)",
+            label="⬇️ Download Zone Statistics (CSV)",
             data=csv_bytes,
-            file_name="parking_facility_statistics.csv",
+            file_name="parking_zone_statistics.csv",
             mime="text/csv"
         )
 

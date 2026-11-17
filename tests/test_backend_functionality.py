@@ -35,7 +35,7 @@ class TestBackendFunctionality(unittest.TestCase):
     def test_raw_data_loading_and_schema(self):
         df_raw = load_raw_data()
         self.assertIsInstance(df_raw, pd.DataFrame)
-        self.assertEqual(len(df_raw), 35717)
+        self.assertEqual(len(df_raw), 1000)
         for col in REQUIRED_COLUMNS:
             self.assertIn(col, df_raw.columns)
 
@@ -48,13 +48,13 @@ class TestBackendFunctionality(unittest.TestCase):
         df_clean, audit = clean_parking_data(df_raw)
         
         # Verify deduplication
-        self.assertEqual(audit["raw_record_count"], 35717)
-        self.assertEqual(audit["key_duplicates_removed"], 216)
-        self.assertEqual(len(df_clean), 35501)
+        self.assertEqual(audit["raw_record_count"], 1000)
+        self.assertEqual(audit["key_duplicates_removed"], 0)
+        self.assertEqual(len(df_clean), 1000)
         
         # Verify negative occupancy clipped
         self.assertTrue((df_clean["Occupancy_Cleaned"] >= 0).all())
-        self.assertEqual(audit["negative_occupancy_count"], 12)
+        self.assertEqual(audit["negative_occupancy_count"], 0)
         
         # Verify datetime decomposition
         for col in ["Date", "Hour", "DayOfWeek", "IsWeekend"]:

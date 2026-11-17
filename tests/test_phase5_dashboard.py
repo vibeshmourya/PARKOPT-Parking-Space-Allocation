@@ -103,22 +103,22 @@ class TestDashboardDataService(unittest.TestCase):
     def test_load_cleaned_dataset(self):
         df_clean = load_cleaned_dataset()
         self.assertIsInstance(df_clean, pd.DataFrame)
-        self.assertEqual(len(df_clean), 35501)
-        self.assertEqual(df_clean["SystemCodeNumber"].nunique(), 30)
+        self.assertEqual(len(df_clean), 1000)
+        self.assertEqual(df_clean["SystemCodeNumber"].nunique(), 4)
         self.assertTrue((df_clean["Occupancy_Cleaned"] >= 0).all())
 
     def test_load_facility_statistics(self):
         area_stats = load_facility_statistics()
         self.assertIsInstance(area_stats, pd.DataFrame)
-        self.assertEqual(len(area_stats), 30)
+        self.assertEqual(len(area_stats), 4)
         required_cols = ["SystemCodeNumber", "Capacity", "AvgOccupancy", "AvgUtilizationPct"]
         for col in required_cols:
             self.assertIn(col, area_stats.columns)
 
     def test_load_demand_estimates(self):
         demands_p95 = load_demand_estimates("p95")
-        self.assertEqual(len(demands_p95), 30)
-        self.assertEqual(demands_p95["EstimatedDemand"].sum(), 28839)
+        self.assertEqual(len(demands_p95), 4)
+        self.assertEqual(demands_p95["EstimatedDemand"].sum(), 116)
 
     def test_load_temporal_data(self):
         hourly_df, day_df = load_temporal_data()
@@ -127,14 +127,14 @@ class TestDashboardDataService(unittest.TestCase):
 
     def test_load_system_kpis(self):
         kpis = load_system_kpis()
-        self.assertEqual(kpis["total_facilities"], 30)
-        self.assertEqual(kpis["total_system_capacity"], 39956)
-        self.assertGreaterEqual(kpis["total_observations"], 35501)
+        self.assertEqual(kpis["total_facilities"], 4)
+        self.assertEqual(kpis["total_system_capacity"], 193)
+        self.assertGreaterEqual(kpis["total_observations"], 1000)
 
     def test_load_scenario_summaries(self):
         summary_df, alloc_df = load_scenario_summaries()
         self.assertEqual(len(summary_df), 5)
-        self.assertEqual(len(alloc_df), 30)
+        self.assertEqual(len(alloc_df), 4)
 
     def test_load_budget_sensitivity_data(self):
         sens_df = load_budget_sensitivity_data()
@@ -150,7 +150,7 @@ class TestDashboardOptimizationService(unittest.TestCase):
         self.df_clean = load_cleaned_dataset()
 
     def test_run_solver_workflow(self):
-        budget = 21617
+        budget = 87
         opt_result, comp_df, comp_summary = run_solver_workflow(
             df_clean=self.df_clean,
             budget=budget,
@@ -159,13 +159,13 @@ class TestDashboardOptimizationService(unittest.TestCase):
         )
         self.assertEqual(opt_result["status"], "Optimal")
         self.assertEqual(opt_result["summary"]["total_allocated"], budget)
-        self.assertEqual(len(comp_df), 30)
+        self.assertEqual(len(comp_df), 4)
         self.assertGreater(comp_summary["objective_improvement"], 0)
         self.assertGreater(comp_summary["objective_improvement_pct"], 0)
 
     def test_compute_facility_weights_preview(self):
         preview = compute_facility_weights_preview(self.df_clean, priority_scenario="congestion")
-        self.assertEqual(len(preview), 30)
+        self.assertEqual(len(preview), 4)
         self.assertTrue((preview["PriorityWeight"] >= 1.0).all())
         self.assertTrue((preview["PriorityWeight"] <= 3.0).all())
 
@@ -177,7 +177,7 @@ class TestDashboardReportService(unittest.TestCase):
         df_clean = load_cleaned_dataset()
         opt_result, comp_df, comp_summary = run_solver_workflow(
             df_clean=df_clean,
-            budget=21617,
+            budget=87,
             demand_method="p95",
             priority_scenario="congestion"
         )
@@ -192,7 +192,7 @@ class TestDashboardReportService(unittest.TestCase):
             scenarios_summary_df=summary_df,
             current_demand_method="p95",
             current_priority_scenario="congestion",
-            current_budget=21617
+            current_budget=87
         )
 
         self.assertIsInstance(pdf_bytes, bytes)
@@ -209,7 +209,7 @@ class TestDashboardCharts(unittest.TestCase):
         self.hourly_df, self.day_df = load_temporal_data(self.df_clean)
         opt_result, self.comp_df, self.comp_summary = run_solver_workflow(
             df_clean=self.df_clean,
-            budget=21617,
+            budget=87,
             demand_method="p95",
             priority_scenario="congestion"
         )

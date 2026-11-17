@@ -69,7 +69,7 @@ class TestCompleteEndToEndPipeline(unittest.TestCase):
         # -------------------------------------------------------------
         df_raw = load_raw_data()
         self.assertIsInstance(df_raw, pd.DataFrame)
-        self.assertEqual(len(df_raw), 35717)
+        self.assertEqual(len(df_raw), 1000)
         for col in ["SystemCodeNumber", "Capacity", "Occupancy", "LastUpdated"]:
             self.assertIn(col, df_raw.columns)
 
@@ -77,9 +77,9 @@ class TestCompleteEndToEndPipeline(unittest.TestCase):
         # Stage 2: Clean and Preprocess Records
         # -------------------------------------------------------------
         df_clean, report = clean_parking_data(df_raw)
-        self.assertEqual(len(df_clean), 35501)
-        self.assertEqual(report["key_duplicates_removed"], 216)
-        self.assertEqual(report["negative_occupancy_count"], 12)
+        self.assertEqual(len(df_clean), 1000)
+        self.assertEqual(report["key_duplicates_removed"], 0)
+        self.assertEqual(report["negative_occupancy_count"], 0)
         self.assertTrue((df_clean["Occupancy_Cleaned"] >= 0).all())
 
         # -------------------------------------------------------------
@@ -90,10 +90,10 @@ class TestCompleteEndToEndPipeline(unittest.TestCase):
         day_df = get_day_of_week_trends(df_clean)
         kpis = get_overall_system_kpis(df_clean)
 
-        self.assertEqual(len(area_stats), 30)
+        self.assertEqual(len(area_stats), 4)
         self.assertEqual(len(day_df), 7)
-        self.assertEqual(kpis["total_system_capacity"], 39956)
-        self.assertEqual(kpis["total_parking_areas"], 30)
+        self.assertEqual(kpis["total_system_capacity"], 193)
+        self.assertEqual(kpis["total_parking_areas"], 4)
 
         # -------------------------------------------------------------
         # Stage 4: Estimate Parking Demand (All 4 Methods)
@@ -112,12 +112,12 @@ class TestCompleteEndToEndPipeline(unittest.TestCase):
         self.assertLessEqual(tot_mean, tot_p85)
         self.assertLessEqual(tot_p85, tot_p95)
         self.assertLessEqual(tot_p95, tot_max)
-        self.assertEqual(tot_p95, 28839)
+        self.assertEqual(tot_p95, 116)
 
         # -------------------------------------------------------------
         # Stage 5 & 6: Solve LP Optimization & Proportional Baseline
         # -------------------------------------------------------------
-        budget = 21617 # 75% of P95 demand
+        budget = 87 # ~75% of P95 demand
         opt_res, comp_df, comp_summary = run_solver_workflow(
             df_clean=df_clean,
             budget=budget,
@@ -135,7 +135,7 @@ class TestCompleteEndToEndPipeline(unittest.TestCase):
         # -------------------------------------------------------------
         summary_scen, alloc_scen = load_scenario_summaries()
         self.assertEqual(len(summary_scen), 5)
-        self.assertEqual(len(alloc_scen), 30)
+        self.assertEqual(len(alloc_scen), 4)
 
         # -------------------------------------------------------------
         # Stage 8: Budget Sensitivity Analysis Sweep
@@ -160,9 +160,9 @@ class TestCompleteEndToEndPipeline(unittest.TestCase):
         # Stage 10: Streamlit Data Service Cache Verification
         # -------------------------------------------------------------
         cached_df = load_cleaned_dataset()
-        self.assertEqual(len(cached_df), 35501)
+        self.assertEqual(len(cached_df), 1000)
         cached_kpis = load_system_kpis()
-        self.assertEqual(cached_kpis["total_facilities"], 30)
+        self.assertEqual(cached_kpis["total_facilities"], 4)
 
         # -------------------------------------------------------------
         # Stage 11: Exported CSV Files Verification

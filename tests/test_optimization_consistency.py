@@ -47,7 +47,7 @@ class TestOptimizationConsistency(unittest.TestCase):
         cls.caps = merged["Capacity"].tolist()
         cls.dems = merged["EstimatedDemand"].tolist()
         cls.utils = merged["AvgUtilizationPct"].tolist()
-        cls.budget = 21617
+        cls.budget = 87
 
     def test_lp_constraints_satisfaction(self):
         """Verifies that optimal allocations satisfy all 5 LP constraints."""
@@ -107,7 +107,7 @@ class TestOptimizationConsistency(unittest.TestCase):
         """Verifies that all 5 canonical scenarios execute and return valid results."""
         summary_df, fac_df, meta = run_all_optimization_scenarios(self.df_clean)
         self.assertEqual(len(summary_df), 5)
-        self.assertEqual(len(fac_df), 30)
+        self.assertEqual(len(fac_df), 4)
         
         expected_scenarios = [
             "1. Existing Baseline",

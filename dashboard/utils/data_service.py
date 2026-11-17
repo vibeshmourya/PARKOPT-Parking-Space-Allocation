@@ -1,7 +1,7 @@
 """
 data_service.py
 Data access and caching service for the PARKOPT Streamlit application.
-Loads and caches verified datasets and analytical summaries from Phase 1-4.
+Loads and caches verified datasets and analytical summaries for Smart Parking Management.
 """
 
 import os
@@ -31,23 +31,23 @@ from exploratory_analysis import (
     get_parking_area_statistics,
     get_hourly_occupancy_trends,
     get_day_of_week_trends,
-    get_overall_system_kpis
+    get_overall_system_kpis,
+    get_vehicle_type_distribution,
+    get_user_type_distribution,
 )
 from demand_estimation import estimate_facility_demand
 
 
-@st.cache_data(show_spinner="Loading Birmingham Parking Dataset...")
+@st.cache_data(show_spinner="Loading Smart Parking Dataset...")
 def load_cleaned_dataset() -> pd.DataFrame:
     """
     Loads raw CSV data and runs verified cleaning pipeline.
     Caches in memory for rapid interactive response across all pages.
     """
-    # Prefer existing dataset.csv in data/ or root
     csv_candidates = [
-        os.path.join(DATA_DIR, "parking_birmingham.csv"),
-        os.path.join(DATA_DIR, "dataset.csv"),
-        os.path.join(PROJECT_ROOT, "dataset.csv"),
-        os.path.join(PROJECT_ROOT, "data", "parking_birmingham.csv")
+        os.path.join(DATA_DIR, "processed", "parking_sample_1500.csv"),
+        os.path.join(DATA_DIR, "raw", "IIoT_Smart_Parking_Management.csv"),
+        os.path.join(PROJECT_ROOT, "IIoT_Smart_Parking_Management.csv"),
     ]
     data_path = None
     for c in csv_candidates:
@@ -67,7 +67,7 @@ def load_cleaned_dataset() -> pd.DataFrame:
 @st.cache_data(show_spinner="Computing Facility Statistics...")
 def load_facility_statistics(df_clean: Optional[pd.DataFrame] = None) -> pd.DataFrame:
     """
-    Returns facility statistics across all 30 parking areas.
+    Returns facility statistics across all parking zones.
     Uses outputs/parking_area_statistics.csv if present, or calculates from cleaned data.
     """
     stats_csv = os.path.join(OUTPUTS_DIR, "parking_area_statistics.csv")
@@ -85,7 +85,7 @@ def load_facility_statistics(df_clean: Optional[pd.DataFrame] = None) -> pd.Data
 @st.cache_data(show_spinner="Loading Demand Estimates...")
 def load_demand_estimates(method: str = "p95", df_clean: Optional[pd.DataFrame] = None) -> pd.DataFrame:
     """
-    Computes or retrieves demand estimates for all 30 facilities.
+    Computes or retrieves demand estimates for all parking zones.
     """
     if df_clean is None:
         df_clean = load_cleaned_dataset()
@@ -99,7 +99,7 @@ def load_temporal_data(df_clean: Optional[pd.DataFrame] = None) -> Tuple[pd.Data
     """
     hourly_csv = os.path.join(OUTPUTS_DIR, "hourly_occupancy_trends.csv")
     day_csv = os.path.join(OUTPUTS_DIR, "day_of_week_trends.csv")
-    
+
     if os.path.exists(hourly_csv) and os.path.exists(day_csv):
         try:
             h_df = pd.read_csv(hourly_csv)
@@ -124,10 +124,23 @@ def load_system_kpis(df_clean: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
         df_clean = load_cleaned_dataset()
     raw_kpis = get_overall_system_kpis(df_clean)
     kpis = dict(raw_kpis)
-    kpis["total_facilities"] = raw_kpis.get("total_parking_areas", 30)
+    kpis["total_facilities"] = raw_kpis.get("total_parking_areas", 4)
     kpis["total_observations"] = len(df_clean)
-    kpis["overall_mean_utilization_pct"] = raw_kpis.get("avg_system_utilization_pct", 44.59)
+    kpis["overall_mean_utilization_pct"] = raw_kpis.get("avg_system_utilization_pct", 28.36)
     return kpis
+
+
+@st.cache_data(show_spinner="Loading Smart Parking Distributions...")
+def load_smart_parking_distributions(df_clean: Optional[pd.DataFrame] = None) -> Dict[str, pd.DataFrame]:
+    """
+    Loads vehicle and user type distributions for the smart parking system.
+    """
+    if df_clean is None:
+        df_clean = load_cleaned_dataset()
+    return {
+        "vehicle_type": get_vehicle_type_distribution(df_clean),
+        "user_type": get_user_type_distribution(df_clean),
+    }
 
 
 @st.cache_data(show_spinner="Loading Scenario Summaries...")
@@ -143,14 +156,15 @@ def load_scenario_summaries() -> Tuple[pd.DataFrame, pd.DataFrame]:
         alloc_df = pd.read_csv(alloc_csv)
     else:
         from scenario_analysis import run_all_optimization_scenarios
+
         df_clean = load_cleaned_dataset()
-        summary_df, alloc_df = run_all_optimization_scenarios(df_clean)
+        summary_df, alloc_df, _ = run_all_optimization_scenarios(df_clean)
 
     # Standardize column names for flexible access
     col_map = {
         "BudgetPermits": "Budget",
         "TotalUnmetDemand": "UnmetDemand",
-        "WeightedObjective": "ObjectiveValue"
+        "WeightedObjective": "ObjectiveValue",
     }
     for old_col, new_col in col_map.items():
         if old_col in summary_df.columns and new_col not in summary_df.columns:
@@ -169,8 +183,9 @@ def load_budget_sensitivity_data() -> pd.DataFrame:
         sens_df = pd.read_csv(sens_csv)
     else:
         from sensitivity_analysis import run_budget_sensitivity_analysis
+
         df_clean = load_cleaned_dataset()
-        sens_df = run_budget_sensitivity_analysis(df_clean)
+        sens_df, _ = run_budget_sensitivity_analysis(df_clean)
 
     # Standardize column aliases
     col_map = {
@@ -181,7 +196,7 @@ def load_budget_sensitivity_data() -> pd.DataFrame:
         "FullySatisfiedFacilities": "FullySatisfiedCount",
         "PartiallySatisfiedFacilities": "PartiallySatisfiedCount",
         "ZeroAllocationFacilities": "ZeroAllocationCount",
-        "MarginalValuePerPermit": "MarginalGain"
+        "MarginalValuePerPermit": "MarginalGain",
     }
     for old_col, new_col in col_map.items():
         if old_col in sens_df.columns and new_col not in sens_df.columns:

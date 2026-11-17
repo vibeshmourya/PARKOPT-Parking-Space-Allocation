@@ -149,7 +149,7 @@ def run_budget_sensitivity_analysis(
         "maximum_achievable_objective": float(sat_row["OptimizedObjective"]),
         "saturation_insight": (
             f"Increasing budget beyond {total_allocatable:,} permits yields exactly zero marginal objective "
-            f"gain because all 30 facilities achieve their maximum physical or demand limits."
+            f"gain because all {len(names)} facilities achieve their maximum physical or demand limits."
         )
     }
 

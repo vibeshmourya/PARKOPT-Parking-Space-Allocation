@@ -63,7 +63,7 @@ class TestFullApplicationWorkflow(unittest.TestCase):
         df_clean = load_cleaned_dataset()
         opt_res, comp_df, comp_summary = run_solver_workflow(
             df_clean=df_clean,
-            budget=21617,
+            budget=87,
             demand_method="p95",
             priority_scenario="congestion"
         )
@@ -76,7 +76,7 @@ class TestFullApplicationWorkflow(unittest.TestCase):
         df_clean = load_cleaned_dataset()
         opt_res, comp_df, comp_summary = run_solver_workflow(
             df_clean=df_clean,
-            budget=21617,
+            budget=87,
             demand_method="p95",
             priority_scenario="congestion"
         )
@@ -84,14 +84,14 @@ class TestFullApplicationWorkflow(unittest.TestCase):
         summary_df, _ = load_scenario_summaries()
 
         pdf_bytes = generate_academic_pdf_report(
-            opt_result=opt_res,
+            opt_result=opt_result if 'opt_result' in locals() else opt_res,
             comp_df=comp_df,
             comp_summary=comp_summary,
             area_stats_df=area_stats,
             scenarios_summary_df=summary_df,
             current_demand_method="p95",
             current_priority_scenario="congestion",
-            current_budget=21617
+            current_budget=87
         )
         self.assertIsInstance(pdf_bytes, bytes)
         self.assertTrue(pdf_bytes.startswith(b"%PDF"), "Generated file must have valid PDF header")

@@ -62,19 +62,19 @@ def render_results_and_reports_page() -> None:
         with st.spinner("Computing baseline vs. optimal allocation..."):
             opt_result, comp_df, comp_summary = run_solver_workflow(
                 df_clean=df_clean,
-                budget=21617,
+                budget=87,
                 demand_method="p95",
                 priority_scenario="congestion"
             )
             set_state("latest_opt_result", opt_result)
             set_state("comparison_df", comp_df)
             set_state("comparison_summary", comp_summary)
-            set_state("current_budget", 21617)
+            set_state("current_budget", 87)
             set_state("current_demand_method", "p95")
             set_state("current_priority_scenario", "congestion")
 
     # 3. High-Level Allocation KPIs (Native Streamlit Components)
-    budget = get_state("current_budget") or 21617
+    budget = get_state("current_budget") or 87
     total_alloc = comp_summary.get("optimized_total_allocated", budget)
     unmet = comp_summary.get("optimized_unmet_demand", 0)
     obj_val = comp_summary.get("optimized_objective", 0.0)
@@ -85,7 +85,7 @@ def render_results_and_reports_page() -> None:
         {"label": "Recommended Allocation", "value": f"{format_number(total_alloc)} permits", "subtext": f"Budget: {format_number(budget)}", "badge": "ALLOCATED", "border_left_color": "#2563EB"},
         {"label": "Optimization Score (Z*)", "value": f"{format_number(obj_val, decimals=1)}", "subtext": f"+{obj_gain:,.1f} vs baseline", "delta": f"+{obj_gain_pct:.1f}%", "delta_positive": True, "badge": "SCORE", "border_left_color": "#10B981"},
         {"label": "Estimated Unmet Demand", "value": f"{format_number(unmet)} permits", "subtext": "Demand exceeding quota", "badge": "UNMET", "border_left_color": "#EF4444" if unmet > 0 else "#10B981"},
-        {"label": "Fully Satisfied Facilities", "value": f"{int((comp_df['OptimizedUnmetDemand'] == 0).sum())} of 30", "subtext": "100% demand covered", "badge": "SATISFIED", "border_left_color": "#0F172A"}
+        {"label": "Fully Satisfied Facilities", "value": f"{int((comp_df['OptimizedUnmetDemand'] == 0).sum())} of {len(comp_df)}", "subtext": "100% demand covered", "badge": "SATISFIED", "border_left_color": "#0F172A"}
     ])
 
     st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
@@ -124,7 +124,7 @@ def render_results_and_reports_page() -> None:
             "**Operational Infrastructure Distinction:**\n"
             "- **Observed Historical Occupancy** reflects raw empirical vehicle arrivals recorded by municipal street sensors.\n"
             "- **Managed Parking Permits ($x_i$)** represent administrative quotas allocated across facilities.\n"
-            "- Physical concrete parking bays are geographically static civil assets that cannot be physically moved across Birmingham. "
+            "- Physical concrete parking bays are geographically static civil assets that cannot be physically moved across zones. "
             "Linear Programming reallocates administrative permit quotas away from underutilized buffers to high-demand bottleneck lots."
         )
 

@@ -32,25 +32,31 @@ PRIORITY_STRATEGIES = ["equal", "congestion", "custom"]
 
 def get_default_custom_weights(facility_names: List[str]) -> List[float]:
     """
-    Generates transparent, policy-driven custom weights reflecting municipal urban policy:
-    - Healthcare / Emergency Facilities (e.g. Hospital NHS): Weight = 3.0
-    - Core Commercial / Retail / Civic Hubs (e.g. Bull Ring, Shopping, Broad Street, BCC): Weight = 2.5
-    - Major Rail / Transit Commuter Hubs (e.g. NCP, BRC): Weight = 1.8
-    - Peripheral Civic / Arena Facilities (e.g. NIA, Others): Weight = 1.2
-    
-    Reproducible and deterministic; does not assume demographic user classes.
+    Generates transparent, policy-driven custom weights reflecting smart parking policy:
+    - Zone A (Primary Central Hub / High Turnover): Weight = 2.5
+    - Zone B (Business / Commercial Zone): Weight = 2.2
+    - Zone C (Transit / Commuter Zone): Weight = 1.8
+    - Zone D (Residential / Long-term / Peripheral): Weight = 1.4
+
+    Reproducible and deterministic; aligns with smart parking management priorities.
     """
     weights = []
+    zone_weight_map = {
+        "ZONE A": 2.5,
+        "ZONE B": 2.2,
+        "ZONE C": 1.8,
+        "ZONE D": 1.4,
+    }
     for name in facility_names:
         uname = name.upper()
-        if "NHS" in uname:
-            weights.append(3.0)
-        elif any(k in uname for k in ["BULL RING", "SHOPPING", "BROAD STREET", "BCC"]):
-            weights.append(2.5)
-        elif any(k in uname for k in ["NCP", "BRC"]):
-            weights.append(1.8)
-        else:
-            weights.append(1.2)
+        matched = False
+        for k, v in zone_weight_map.items():
+            if k in uname:
+                weights.append(v)
+                matched = True
+                break
+        if not matched:
+            weights.append(1.5)
     return weights
 
 

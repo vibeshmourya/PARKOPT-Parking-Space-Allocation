@@ -72,7 +72,7 @@ def generate_academic_pdf_report(
     scenarios_summary_df: Optional[pd.DataFrame] = None,
     current_demand_method: str = "p95",
     current_priority_scenario: str = "congestion",
-    current_budget: int = 21617
+    current_budget: int = 87
 ) -> bytes:
     """
     Builds and returns a complete academic PDF report in bytes.
@@ -185,7 +185,7 @@ def generate_academic_pdf_report(
          Paragraph("<b>Subject:</b> Introduction to Operations Research (ITOR)", table_cell)],
         [Paragraph("<b>Technique:</b> Integer Linear Programming (ILP)", table_cell),
          Paragraph("<b>Solver Engine:</b> PuLP 3.3.2 (COIN-OR CBC)", table_cell)],
-        [Paragraph(f"<b>Dataset:</b> Birmingham Parking (30 Facilities)", table_cell),
+        [Paragraph(f"<b>Dataset:</b> Smart Parking Management (4 Zones, 193 Bays)", table_cell),
          Paragraph(f"<b>Report Generated:</b> {now_str}", table_cell)],
         [Paragraph(f"<b>Demand Estimator:</b> {current_demand_method.upper()}", table_cell),
          Paragraph(f"<b>Priority Strategy:</b> {current_priority_scenario.capitalize()}", table_cell)]
@@ -205,11 +205,11 @@ def generate_academic_pdf_report(
     summary_text = (
         "Urban parking facilities represent non-relocatable municipal infrastructure subject to spatial and temporal "
         "imbalances. This Operations Research project models the optimal allocation of limited managed parking permits "
-        "and admission quotas across 30 municipal parking facilities in Birmingham, UK. "
+        "and admission quotas across 4 smart parking zones (Zone A, B, C, D) comprising 193 IoT sensor bays. "
         "<b>Crucial Operational Interpretation:</b> Decision variables <i>x<sub>i</sub></i> represent managed admission quotas "
-        "or permits, not the physical transfer of physical asphalt bays. By applying Linear Programming (LP), "
-        "the municipality balances spatial demand while preventing facility overflow, minimizing system-wide unmet demand, "
-        "and prioritizing severe bottleneck lots."
+        "or permits, not the physical transfer of stationary civil bays. By applying Linear Programming (LP), "
+        "the management system balances spatial demand while preventing facility overflow, minimizing system-wide unmet demand, "
+        "and prioritizing severe bottleneck zones."
     )
     story.append(Paragraph(summary_text, body_style))
     story.append(Spacer(1, 6))
@@ -218,19 +218,19 @@ def generate_academic_pdf_report(
     story.append(Paragraph("2. Mathematical Optimization Formulation (PuLP Model)", h1_style))
     math_text = (
         "<b>Decision Variables:</b><br/>"
-        "&nbsp;&nbsp;x_i = Managed parking permits/admission quota allocated to facility i &isin; {1, ..., 30}, where x_i &isin; Z+.<br/><br/>"
+        "&nbsp;&nbsp;x_i = Managed parking permits/admission quota allocated to zone i &isin; {1, 2, 3, 4}, where x_i &isin; Z+.<br/><br/>"
         "<b>Parameters:</b><br/>"
-        "&nbsp;&nbsp;C_i = Physical bay capacity of facility i (Total: 39,956 bays)<br/>"
-        "&nbsp;&nbsp;d_i = Estimated parking demand under chosen estimator (P95 Total: 28,788 permits)<br/>"
+        "&nbsp;&nbsp;C_i = Physical bay capacity of zone i (Total: 193 bays; C_A=50, C_B=50, C_C=49, C_D=44)<br/>"
+        "&nbsp;&nbsp;d_i = Estimated parking demand under chosen estimator (P95 Total: 116 permits)<br/>"
         "&nbsp;&nbsp;w_i = Facility priority weight (Congestion strategy: w_i = 1.0 + 2.0 * (u_i / max(u)))<br/>"
         "&nbsp;&nbsp;B &nbsp; = Total permit allocation budget (Current B = " + f"{current_budget:,}" + ")<br/><br/>"
         "<b>Objective Function:</b><br/>"
-        "&nbsp;&nbsp;Maximize Z = &sum;_{i=1}^{30} ( w_i &middot; x_i )<br/><br/>"
+        "&nbsp;&nbsp;Maximize Z = &sum;_{i=1}^{4} ( w_i &middot; x_i )<br/><br/>"
         "<b>Subject to Constraints:</b><br/>"
-        "&nbsp;&nbsp;1. Budget Limit:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&sum;_{i=1}^{30} x_i &le; B<br/>"
-        "&nbsp;&nbsp;2. Physical Capacity:&nbsp;&nbsp;&nbsp;&nbsp;x_i &le; C_i&nbsp;&nbsp;&forall; i &isin; {1, ..., 30}<br/>"
-        "&nbsp;&nbsp;3. Demand Ceiling:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x_i &le; d_i&nbsp;&nbsp;&forall; i &isin; {1, ..., 30}<br/>"
-        "&nbsp;&nbsp;4. Integrality & Bounds:&nbsp;&nbsp;x_i &ge; 0, x_i &isin; Z&nbsp;&nbsp;&forall; i &isin; {1, ..., 30}"
+        "&nbsp;&nbsp;1. Budget Limit:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&sum;_{i=1}^{4} x_i &le; B<br/>"
+        "&nbsp;&nbsp;2. Physical Capacity:&nbsp;&nbsp;&nbsp;&nbsp;x_i &le; C_i&nbsp;&nbsp;&forall; i &isin; {1, ..., 4}<br/>"
+        "&nbsp;&nbsp;3. Demand Ceiling:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x_i &le; d_i&nbsp;&nbsp;&forall; i &isin; {1, ..., 4}<br/>"
+        "&nbsp;&nbsp;4. Integrality & Bounds:&nbsp;&nbsp;x_i &ge; 0, x_i &isin; Z&nbsp;&nbsp;&forall; i &isin; {1, ..., 4}"
     )
     story.append(Paragraph(math_text, math_block))
     story.append(Spacer(1, 6))

@@ -1,6 +1,6 @@
 ScenarioID,ScenarioName,DemandEstimator,PriorityStrategy,BudgetPermits,TotalAllocated,BudgetUtilizationPct,TotalUnmetDemand,WeightedObjective,FullySatisfiedLots,PartiallySatisfiedLots,ZeroAllocationLots,AvgUtilizationPct,Description
-SCEN_01,1. Existing Baseline,95th Percentile,Proportional Demand Share,21617,21617,100.0,7222,49584.61,0,30,0,57.13,Administrative proportional distribution without mathematical optimization.
-SCEN_02,2. Demand-Based Optimization,95th Percentile,Equal Priority (w=1.0),21617,21617,100.0,7222,53274.47,19,1,10,57.07,Pure demand-volume maximization with equal weights across all facilities.
-SCEN_03,3. Priority-Based Optimization,95th Percentile,Congestion-Sensitive Priority,21617,21617,100.0,7222,53274.47,19,1,10,57.07,Mathematical optimization directing scarce permits to congested bottleneck lots.
-SCEN_04,4. Capacity Reduction Scenario,95th Percentile,Congestion Priority (-25% Budget),16213,16213,100.0,12626,41279.55,16,1,13,50.51,Stress tests 25% permit budget reduction to model municipal closures/maintenance.
-SCEN_05,5. Peak Demand Scenario,Maximum Observed Demand,Congestion Priority (Max Demand),21617,21617,100.0,11550,53566.24,18,1,11,59.52,Stress tests system against historical peak overflow and maximum recorded vehicle arrivals.
+SCEN_01,1. Existing Baseline,95th Percentile,Proportional Demand Share,87,87,100.0,29,247.01,0,4,0,45.1,Administrative proportional distribution without mathematical optimization.
+SCEN_02,2. Demand-Based Optimization,95th Percentile,Equal Priority (w=1.0),87,87,100.0,29,249.52,3,0,1,45.64,Pure demand-volume maximization with equal weights across all facilities.
+SCEN_03,3. Priority-Based Optimization,95th Percentile,Congestion-Sensitive Priority,87,87,100.0,29,249.52,3,0,1,45.64,Mathematical optimization directing scarce permits to congested bottleneck lots.
+SCEN_04,4. Capacity Reduction Scenario,95th Percentile,Congestion Priority (-25% Budget),65,65,100.0,51,187.73,2,1,1,34.42,Stress tests 25% permit budget reduction to model municipal closures/maintenance.
+SCEN_05,5. Peak Demand Scenario,Maximum Observed Demand,Congestion Priority (Max Demand),87,87,100.0,58,251.05,2,1,1,46.01,Stress tests system against historical peak overflow and maximum recorded vehicle arrivals.

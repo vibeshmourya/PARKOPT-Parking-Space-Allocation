@@ -226,7 +226,7 @@ def render_temporal_diurnal_chart(hourly_df: pd.DataFrame, day_df: pd.DataFrame)
 
 def render_hourly_heatmap_chart(df_clean: pd.DataFrame) -> go.Figure:
     """
-    Renders 2D Matrix Heatmap: 30 Facilities vs 24 Hours Average Occupancy.
+    Renders 2D Matrix Heatmap: Parking Zones vs 24 Hours Average Occupancy.
     """
     df = df_clean.copy()
     if "Hour" not in df.columns:
@@ -454,7 +454,7 @@ def render_satisfaction_transitions_chart(sens_df: pd.DataFrame) -> go.Figure:
         barmode="stack",
         height=400,
         xaxis_title="Managed Permit Budget (B)",
-        yaxis_title="Number of Facilities (Total: 30)"
+        yaxis_title="Number of Facilities"
     )
     return fig
 
@@ -650,4 +650,49 @@ def render_demand_vs_recommended_chart(comp_df: pd.DataFrame) -> go.Figure:
 def render_reallocation_shifts_chart(comp_df: pd.DataFrame) -> go.Figure:
     """Renders simplified Reallocation Shifts chart."""
     return render_allocation_diff_chart(comp_df)
+
+
+def render_vehicle_type_chart(df_clean: pd.DataFrame) -> go.Figure:
+    """Renders donut chart of vehicle categories in the Smart Parking system."""
+    if "Vehicle_Type" not in df_clean.columns:
+        return go.Figure()
+    counts = df_clean["Vehicle_Type"].value_counts().reset_index()
+    counts.columns = ["Vehicle_Type", "Count"]
+    fig = go.Figure(data=[go.Pie(
+        labels=counts["Vehicle_Type"],
+        values=counts["Count"],
+        hole=0.45,
+        marker=dict(colors=[COLOR_SECONDARY_BLUE, COLOR_EMERALD, COLOR_AMBER]),
+        hovertemplate="<b>%{label}</b><br>Count: %{value}<br>Share: %{percent}<extra></extra>"
+    )])
+    fig.update_layout(
+        **PLOTLY_LAYOUT_DEFAULTS,
+        title=dict(text="<b>Vehicle Category Distribution</b>", font=dict(size=13, color="#0F172A")),
+        height=300,
+        showlegend=True
+    )
+    return fig
+
+
+def render_user_type_chart(df_clean: pd.DataFrame) -> go.Figure:
+    """Renders donut chart of user categories (Registered, Visitor, Staff)."""
+    if "User_Type" not in df_clean.columns:
+        return go.Figure()
+    counts = df_clean["User_Type"].value_counts().reset_index()
+    counts.columns = ["User_Type", "Count"]
+    fig = go.Figure(data=[go.Pie(
+        labels=counts["User_Type"],
+        values=counts["Count"],
+        hole=0.45,
+        marker=dict(colors=[COLOR_PRIMARY_BLUE, COLOR_TEAL, "#8B5CF6"]),
+        hovertemplate="<b>%{label}</b><br>Count: %{value}<br>Share: %{percent}<extra></extra>"
+    )])
+    fig.update_layout(
+        **PLOTLY_LAYOUT_DEFAULTS,
+        title=dict(text="<b>User Category Distribution</b>", font=dict(size=13, color="#0F172A")),
+        height=300,
+        showlegend=True
+    )
+    return fig
+
 

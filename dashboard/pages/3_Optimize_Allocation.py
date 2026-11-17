@@ -36,7 +36,7 @@ def render_optimize_allocation_page() -> None:
         """<div class="hero-card">
 <h1 class="hero-title">Optimize Parking Allocation</h1>
 <div class="hero-subtitle">Linear Programming Permit Quota Allocation</div>
-<p class="hero-desc">Configure your available permit quota, demand estimation method, and priority strategy. The PuLP solver determines the unique global optimum that maximizes served priority demand across all 30 facilities.</p>
+<p class="hero-desc">Configure your available permit quota, demand estimation method, and priority strategy. The PuLP solver determines the unique global optimum that maximizes served priority demand across all 4 parking zones (193 physical bays).</p>
 </div>""",
         unsafe_allow_html=True
     )
@@ -48,21 +48,21 @@ def render_optimize_allocation_page() -> None:
 
     # Budget preset state handling
     if "opt_budget_val" not in st.session_state:
-        st.session_state["opt_budget_val"] = get_state("current_budget") or 21617
+        st.session_state["opt_budget_val"] = get_state("current_budget") or 87
 
     col_presets, _ = st.columns([2, 1])
     with col_presets:
         st.markdown("<span style='font-size: 0.82rem; font-weight: 600; color: #475569;'>Quick Budget Presets:</span>", unsafe_allow_html=True)
         btn1, btn2, btn3 = st.columns(3)
         with btn1:
-            if st.button("Low (15,000 permits)", use_container_width=True):
-                st.session_state["opt_budget_val"] = 15000
+            if st.button("Low (60 permits)", use_container_width=True):
+                st.session_state["opt_budget_val"] = 60
         with btn2:
-            if st.button("Medium (21,617 permits)", use_container_width=True):
-                st.session_state["opt_budget_val"] = 21617
+            if st.button("Medium (87 permits)", use_container_width=True):
+                st.session_state["opt_budget_val"] = 87
         with btn3:
-            if st.button("High (28,000 permits)", use_container_width=True):
-                st.session_state["opt_budget_val"] = 28000
+            if st.button("High (116 permits)", use_container_width=True):
+                st.session_state["opt_budget_val"] = 116
 
     col_in1, col_in2, col_in3 = st.columns(3)
 
@@ -70,14 +70,14 @@ def render_optimize_allocation_page() -> None:
         st.markdown("<b>Available Parking Permits</b>", unsafe_allow_html=True)
         budget = st.slider(
             "Permit Budget Limit:",
-            min_value=5000,
-            max_value=35000,
+            min_value=10,
+            max_value=193,
             value=int(st.session_state["opt_budget_val"]),
-            step=500,
-            help="Total managed parking permits or reserved admission slots available to allocate across all facilities.",
+            step=1,
+            help="Total managed parking permits or reserved admission slots available to allocate across all 4 zones.",
             label_visibility="collapsed"
         )
-        st.caption(f"Selected Budget: **{format_number(budget)} permits**")
+        st.caption(f"Selected Budget: **{format_number(budget)} permits** (Capacity: 193 bays)")
 
     with col_in2:
         st.markdown("<b>Demand Estimation Method</b>", unsafe_allow_html=True)
@@ -108,93 +108,63 @@ def render_optimize_allocation_page() -> None:
             options=[
                 "Congestion Priority [Recommended]",
                 "Equal Priority (Equal weights)",
-                "Custom Priority"
+                "Custom Weights (Policy-driven)"
             ],
             index=0,
             label_visibility="collapsed",
-            help="Weights determine how much priority the LP solver places on satisfying demand at congested bottleneck lots."
+            help="Mathematical weighting scheme w_i in the objective function."
         )
         priority_map = {
             "Congestion Priority [Recommended]": "congestion",
             "Equal Priority (Equal weights)": "equal",
-            "Custom Priority": "custom"
+            "Custom Weights (Policy-driven)": "custom"
         }
         priority_scenario = priority_map[priority_choice]
 
-    # Custom weights expander
-    custom_weights_dict = None
-    if priority_scenario == "custom":
-        with st.expander("⚙️ Configure Custom Facility Priority Weights (1.0 – 5.0)", expanded=True):
-            st.info("Assign custom priority weights to facilities. Higher weights incentivize the solver to satisfy that lot's demand first.")
-            preview_weights = compute_facility_weights_preview(df_clean, priority_scenario="congestion")
-            custom_weights_dict = {}
-            w_cols = st.columns(3)
-            for idx, (_, row) in enumerate(preview_weights.iterrows()):
-                col_idx = idx % 3
-                with w_cols[col_idx]:
-                    code = row["SystemCodeNumber"]
-                    custom_weights_dict[code] = st.slider(
-                        f"{code}:",
-                        min_value=1.0,
-                        max_value=5.0,
-                        value=float(row["PriorityWeight"]),
-                        step=0.1,
-                        key=f"custom_w_{code}"
-                    )
+    # Priority Strategy Explanation Pill
+    explanation_map = {
+        "congestion": "<b>Congestion Priority:</b> Weights scale dynamically between 1.0 and 3.0 based on historical occupancy pressure (w_i = 1.0 + 2.0 · util_i / max_util). Higher pressure zones are protected.",
+        "equal": "<b>Equal Priority:</b> All facilities receive an identical weight of 1.0. Maximizes the raw volume of served parking permits.",
+        "custom": "<b>Custom Strategy:</b> Pre-configured policy weights reflecting municipal smart parking priorities: Zone A (2.5), Zone B (2.2), Zone C (1.8), Zone D (1.4)."
+    }
+    with st.container(border=True):
+        st.markdown(explanation_map[priority_scenario], unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    # 3. Solver Execution Action Button
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+    col_btn, _ = st.columns([1, 2])
+    with col_btn:
+        solve_clicked = st.button("⚡ Run PuLP LP Solver", type="primary", use_container_width=True)
 
-    # 3. Action: Run Optimization
-    col_run, _ = st.columns([1, 2])
-    with col_run:
-        run_clicked = st.button("⚡ RUN OPTIMIZATION", type="primary", use_container_width=True)
+    if solve_clicked:
+        with st.spinner("Formulating and solving Linear Program with PuLP..."):
+            opt_result, comp_df, comp_summary = run_solver_workflow(
+                df_clean=df_clean,
+                budget=budget,
+                demand_method=demand_method,
+                priority_scenario=priority_scenario
+            )
 
-    if run_clicked:
-        # Input Validation
-        if budget <= 0:
-            st.error("Error: Allocation budget must be a positive integer.")
-            return
+        # Update Session State
+        set_state("latest_opt_result", opt_result)
+        set_state("comparison_df", comp_df)
+        set_state("comparison_summary", comp_summary)
+        set_state("current_budget", budget)
+        set_state("current_demand_method", demand_method)
+        set_state("current_priority_scenario", priority_scenario)
 
-        with st.spinner("Executing PuLP Linear Programming Solver..."):
-            try:
-                opt_result, comp_df, comp_summary = run_solver_workflow(
-                    df_clean=df_clean,
-                    budget=budget,
-                    demand_method=demand_method,
-                    priority_scenario=priority_scenario,
-                    custom_weights=custom_weights_dict
-                )
-                
-                # Check solver status - Never simulate on failure
-                if opt_result.get("status") not in ["Optimal", "Not Solved", "Undefined"]:
-                    st.error(f"Solver Error: Model terminated with status '{opt_result.get('status')}'.")
-                    return
-
-                # Store result in session state
-                set_state("latest_opt_result", opt_result)
-                set_state("comparison_df", comp_df)
-                set_state("comparison_summary", comp_summary)
-                set_state("current_budget", budget)
-                set_state("current_demand_method", demand_method)
-                set_state("current_priority_scenario", priority_scenario)
-                st.success("Optimization solved successfully! Global optimal integer solution verified.")
-            except Exception as e:
-                st.error(f"Optimization Execution Failed: {str(e)}")
-                return
-
-    # 4. Results Summary
+    # 4. Display Results if an optimization run is cached
     opt_result = get_state("latest_opt_result")
     comp_summary = get_state("comparison_summary")
 
     if opt_result and comp_summary:
-        st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
-        st.subheader("2. Solver Results Summary")
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+        st.subheader("2. Solver Execution Results")
 
-        summary = opt_result["summary"]
-        status_str = opt_result.get("status", "Optimal")
-        total_alloc = summary.get("total_allocated", budget)
-        unmet_demand = summary.get("total_unmet_demand", 0)
-        obj_value = summary.get("objective_value", 0.0)
+        status_str = opt_result.get("solver_status", "Optimal")
+        total_alloc = comp_summary.get("optimized_total_allocated", budget)
+        unmet_demand = comp_summary.get("optimized_unmet_demand", 0)
+        obj_value = comp_summary.get("optimized_objective", 0.0)
         remaining_budget = max(0, budget - total_alloc)
 
         # Clean native KPI metric row
@@ -210,7 +180,7 @@ def render_optimize_allocation_page() -> None:
         # Concise Result Summary Card
         with st.container(border=True):
             st.markdown(
-                f"**Optimization Execution Summary:** The solver allocated **{format_number(total_alloc)} permits** across the 30 facilities, "
+                f"**Optimization Execution Summary:** The solver allocated **{format_number(total_alloc)} permits** across the 4 parking zones (193 bays), "
                 f"achieving an optimization priority score of **{format_number(obj_value, decimals=1)}**. "
                 f"Remaining unserved demand is **{format_number(unmet_demand)} permits**, concentrated at physical bottlenecks."
             )
@@ -230,22 +200,22 @@ def render_optimize_allocation_page() -> None:
             ### Integer Linear Programming (ILP) Formulation
 
             **Decision Variables:**
-            $$x_i \in \mathbb{Z}^+ \quad \forall i \in \{1, \dots, 30\}$$
-            *Integer number of managed parking permits or admission quotas allocated to facility $i$.*
+            $$x_i \in \mathbb{Z}^+ \quad \forall i \in \{1, 2, 3, 4\} \quad (\text{Zone A, Zone B, Zone C, Zone D})$$
+            *Integer number of managed parking permits or admission quotas allocated to zone $i$.*
 
             **Objective Function:**
-            $$\text{Maximize } Z = \sum_{i=1}^{30} w_i x_i$$
-            *Maximizes total priority-weighted permit allocation across all municipal facilities.*
+            $$\text{Maximize } Z = \sum_{i=1}^{4} w_i x_i$$
+            *Maximizes total priority-weighted permit allocation across all smart parking zones.*
 
             **Subject to Constraints:**
             1. **Total Available Permit Budget:**
-               $$\sum_{i=1}^{30} x_i \le B$$
+               $$\sum_{i=1}^{4} x_i \le B$$
             2. **Physical Civil Capacity Bound:**
-               $$x_i \le C_i \quad \forall i \in \{1, \dots, 30\}$$
+               $$x_i \le C_i \quad \forall i \in \{1, \dots, 4\} \quad (C_A=50, C_B=50, C_C=49, C_D=44)$$
             3. **Estimated Demand Ceiling:**
-               $$x_i \le d_i \quad \forall i \in \{1, \dots, 30\}$$
+               $$x_i \le d_i \quad \forall i \in \{1, \dots, 4\}$$
             4. **Non-negativity and Integrality:**
-               $$x_i \ge 0, \quad x_i \in \mathbb{Z} \quad \forall i \in \{1, \dots, 30\}$$
+               $$x_i \ge 0, \quad x_i \in \mathbb{Z} \quad \forall i \in \{1, \dots, 4\}$$
             """
         )
 

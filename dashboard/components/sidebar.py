@@ -40,7 +40,7 @@ def render_sidebar() -> None:
             <div style="margin-bottom: 14px; display: flex; gap: 6px; flex-wrap: wrap;">
             <span style="background-color: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 600;">MCA ITOR</span>
             <span style="background-color: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 600;">PuLP LP</span>
-            <span style="background-color: #FAF5FF; color: #7E22CE; border: 1px solid #E9D5FF; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 600;">30 Lots</span>
+            <span style="background-color: #FAF5FF; color: #7E22CE; border: 1px solid #E9D5FF; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 600;">4 Zones · 193 Bays</span>
             </div>"""),
             unsafe_allow_html=True
         )
@@ -72,11 +72,11 @@ def render_sidebar() -> None:
                 <div style="font-size: 0.72rem; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 6px;">System Status</div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
                 <span style="color: #475569;">Facilities:</span>
-                <span style="font-weight: 600; color: #0F172A;">30 Lots</span>
+                <span style="font-weight: 600; color: #0F172A;">4 Zones</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
                 <span style="color: #475569;">Total Capacity:</span>
-                <span style="font-weight: 600; color: #0F172A;">39,956 bays</span>
+                <span style="font-weight: 600; color: #0F172A;">193 bays</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
                 <span style="color: #475569;">Solver State:</span>
@@ -94,4 +94,4 @@ def render_sidebar() -> None:
         st.divider()
 
         # 6. Project Information Footer
-        st.caption("MCA ITOR Academic Project · Birmingham Parking Dataset · PuLP Solver")
+        st.caption("MCA ITOR Academic Project · Smart Parking Management Dataset · PuLP Solver")

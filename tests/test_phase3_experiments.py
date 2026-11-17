@@ -105,7 +105,7 @@ class TestPhase3Experiments(unittest.TestCase):
     def test_estimator_comparison(self):
         """Verify estimator comparison across all 4 demand methods."""
         comp_df, summary = generate_demand_estimator_comparison(self.clean_df, output_dir="outputs")
-        self.assertEqual(len(comp_df), 30)
+        self.assertEqual(len(comp_df), 4)
         
         # Totals hierarchy: Mean <= P85 <= P95 <= Max
         self.assertLessEqual(summary["total_mean_demand"], summary["total_p85_demand"])
@@ -120,7 +120,7 @@ class TestPhase3Experiments(unittest.TestCase):
     def test_priority_strategy_comparison(self):
         """Verify priority comparison produces distinct weight vectors and valid solutions."""
         prio_df, summary = generate_priority_strategy_comparison(self.clean_df, output_dir="outputs")
-        self.assertEqual(len(prio_df), 30)
+        self.assertEqual(len(prio_df), 4)
         self.assertGreater(summary["objective_congestion"], 0)
         self.assertGreater(summary["objective_equal"], 0)
         self.assertGreater(summary["objective_custom"], 0)
@@ -130,16 +130,16 @@ class TestPhase3Experiments(unittest.TestCase):
     def test_edge_case_zero_budget(self):
         """Test with B = 0."""
         res = solve_parking_allocation_lp(
-            facility_names=self.facility_names[:5],
-            capacities=self.capacities[:5],
-            demands=self.demands[:5],
+            facility_names=self.facility_names,
+            capacities=self.capacities,
+            demands=self.demands,
             budget=0,
             priority_scenario="equal"
         )
         self.assertEqual(res["solver_status"], "Optimal")
         self.assertEqual(res["objective_value"], 0.0)
         allocs = res["allocations_df"]["OptimizedAllocation"].tolist()
-        self.assertEqual(allocs, [0, 0, 0, 0, 0])
+        self.assertEqual(allocs, [0] * len(self.facility_names))
 
     def test_edge_case_very_small_budget(self):
         """Test with B = 5 permits."""

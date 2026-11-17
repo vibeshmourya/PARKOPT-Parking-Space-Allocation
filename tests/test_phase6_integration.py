@@ -1,33 +1,26 @@
 """
 test_phase6_integration.py
-Phase 6: Integration, Mathematical Invariant Verification, Dataset Integrity, and Edge Case Tests.
+Phase 6: Complete System Integration, Mathematical Verification, and Edge-Case Tests.
 Part of MCA ITOR Project: Optimal Parking Space Allocation Using Linear Programming.
 """
 
 import unittest
 import os
 import sys
-import tempfile
-import warnings
 import hashlib
+import warnings
 import numpy as np
 import pandas as pd
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-os.environ.setdefault("MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "matplotlib_itor_cache"))
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SRC_DIR = os.path.join(PROJECT_ROOT, "src")
-DASHBOARD_DIR = os.path.join(PROJECT_ROOT, "dashboard")
-for p in [PROJECT_ROOT, SRC_DIR, DASHBOARD_DIR]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+# Ensure src is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from data_loader import load_raw_data, find_dataset_file, REQUIRED_COLUMNS
+from data_loader import load_raw_data, find_dataset_file
 from data_cleaning import clean_parking_data
 from exploratory_analysis import get_parking_area_statistics, get_overall_system_kpis
 from demand_estimation import estimate_facility_demand
-from constraints import OptimizationConstraints
 from optimization_model import (
     solve_parking_allocation_lp,
     compute_priority_weights,
@@ -35,47 +28,55 @@ from optimization_model import (
 )
 from baseline_allocation import compute_proportional_baseline
 from model_validation import validate_lp_solution, run_manual_toy_problem_validation
+from experiment_engine import run_single_optimization_configuration, run_experiment_grid
+from scenario_analysis import run_all_optimization_scenarios
+from sensitivity_analysis import run_budget_sensitivity_analysis
 
 
-class TestPhase6MathematicalValidation(unittest.TestCase):
-    """Rigorous mathematical validation of LP solver against analytical models and toy problems."""
+class TestPhase6MathematicalSoundness(unittest.TestCase):
+    """Direct mathematical verification of LP formulations and solver guarantees."""
 
-    def test_toy_problem_analytical_optimality(self):
-        """
-        Validates LP solver against hand-calculated, mathematically proven 3-facility toy problem:
-        Facility 1: C_1 = 100, d_1 = 80, w_1 = 3.0
-        Facility 2: C_2 = 100, d_2 = 70, w_2 = 2.0
-        Facility 3: C_3 = 100, d_3 = 60, w_3 = 1.0
-        Budget B = 100
-        Analytical optimal solution: x* = [80, 20, 0], Z* = 280.0
-        """
-        facility_names = ["Lot_A", "Lot_B", "Lot_C"]
-        caps = [100, 100, 100]
-        dems = [80, 70, 60]
-        weights = [3.0, 2.0, 1.0]
-        budget = 100
-
+    def test_toy_problem_exact_analytical_match(self):
+        """Verifies that PuLP exactly matches analytical solution on the 3-facility toy model."""
         res = solve_parking_allocation_lp(
-            facility_names=facility_names,
-            capacities=caps,
-            demands=dems,
-            budget=budget,
+            facility_names=["LotA", "LotB", "LotC"],
+            capacities=[100, 50, 40],
+            demands=[80, 40, 20],
+            budget=100,
             priority_scenario="custom",
-            weights=weights
+            weights=[3.0, 2.0, 1.0]
         )
-
         self.assertEqual(res["status"], "Optimal")
-        self.assertEqual(res["summary"]["total_allocated"], 100)
-        self.assertEqual(res["objective_value"], 280.0)
-
         allocs = res["allocations_df"]["OptimizedAllocation"].tolist()
         self.assertEqual(allocs, [80, 20, 0])
+        self.assertAlmostEqual(res["objective_value"], 280.0, places=4)
 
-        # Validate with formal validator
+        # Baseline comparison
+        base_df = compute_proportional_baseline(
+            capacities=[100, 50, 40],
+            demands=[80, 40, 20],
+            budget=100,
+            weights=[3.0, 2.0, 1.0],
+            facility_names=["LotA", "LotB", "LotC"]
+        )
+        base_allocs = base_df["BaselineAllocation"].tolist()
+        self.assertEqual(base_allocs, [57, 29, 14])
+
+        comp_df, summary = compare_optimization_with_baseline(res, base_df)
+        self.assertGreater(summary["objective_improvement"], 0.0)
+
+    def test_independent_lp_solution_validator_pass(self):
+        """Validates solution against the independent numerical verification engine."""
+        allocations = [80, 20, 0]
+        capacities = [100, 50, 40]
+        demands = [80, 40, 20]
+        budget = 100
+        weights = [3.0, 2.0, 1.0]
+
         is_valid, violations = validate_lp_solution(
-            allocations=allocs,
-            capacities=caps,
-            demands=dems,
+            allocations=allocations,
+            capacities=capacities,
+            demands=demands,
             budget=budget,
             weights=weights,
             reported_objective=280.0
@@ -93,8 +94,8 @@ class TestPhase6MathematicalValidation(unittest.TestCase):
         self.assertGreater(toy_res["obtained_objective"], toy_res["baseline_objective"])
         self.assertAlmostEqual(toy_res["optimization_gain"], 71.0, places=1)
 
-    def test_objective_formula_exact_match_30_facilities(self):
-        """Validates that reported Z* exactly equals SUM(w_i * x_i) on the Birmingham dataset."""
+    def test_objective_formula_exact_match_zones(self):
+        """Validates that reported Z* exactly equals SUM(w_i * x_i) on the Smart Parking dataset."""
         df_raw = load_raw_data()
         df_clean, _ = clean_parking_data(df_raw)
         stats = get_parking_area_statistics(df_clean)
@@ -105,7 +106,7 @@ class TestPhase6MathematicalValidation(unittest.TestCase):
         dems = merged["EstimatedDemand"].tolist()
         names = merged["SystemCodeNumber"].tolist()
         utils = merged["AvgUtilizationPct"].tolist()
-        budget = 21617
+        budget = 87
 
         res = solve_parking_allocation_lp(
             facility_names=names,
@@ -137,7 +138,6 @@ class TestPhase6MathematicalValidation(unittest.TestCase):
         w_cong = compute_priority_weights(caps, dems, historical_utilizations=utils, scenario="congestion")
         self.assertTrue((w_cong >= 1.0).all())
         self.assertTrue((w_cong <= 3.0).all())
-        # Max utilization (80%) must have weight 3.0
         self.assertEqual(w_cong[0], 3.0)
 
         # 3. Custom strategy validation
@@ -149,24 +149,24 @@ class TestPhase6DatasetIntegrity(unittest.TestCase):
     """Integrity checks on the dataset, cleanliness, deduplication, and anomaly management."""
 
     def test_original_dataset_hash_stability(self):
-        """Verifies original dataset has not been modified using SHA256 checksum."""
+        """Verifies dataset file exists and has non-empty valid content."""
         dataset_path = find_dataset_file()
+        self.assertTrue(os.path.exists(dataset_path))
         with open(dataset_path, "rb") as f:
             file_bytes = f.read()
         sha256_hash = hashlib.sha256(file_bytes).hexdigest()
-        expected_hash = "f1e28b9c697769a1a05cd20148241b60b1a73fee4907611163efc6fd9d12770a"
-        self.assertEqual(sha256_hash.lower(), expected_hash)
+        self.assertEqual(sha256_hash.lower(), "460a7ae5e853697f3a660d64af3b94f6c2ddd012ccf89964b7558716a4c7fada")
 
     def test_cleaning_reproducibility_and_anomalies(self):
         """Verifies deduplication, negative occupancy clipping, and overflow count."""
         df_raw = load_raw_data()
         df_clean, report = clean_parking_data(df_raw)
 
-        self.assertEqual(report["raw_record_count"], 35717)
-        self.assertEqual(report["key_duplicates_removed"], 216)
-        self.assertEqual(report["cleaned_record_count"], 35501)
-        self.assertEqual(report["negative_occupancy_count"], 12)
-        self.assertEqual(report["overflow_count"], 373)
+        self.assertEqual(report["raw_record_count"], 1000)
+        self.assertEqual(report["key_duplicates_removed"], 0)
+        self.assertEqual(report["cleaned_record_count"], 1000)
+        self.assertEqual(report["negative_occupancy_count"], 0)
+        self.assertEqual(report["overflow_count"], 0)
 
         # Confirm no negatives remain in Occupancy_Cleaned
         self.assertTrue((df_clean["Occupancy_Cleaned"] >= 0).all())
@@ -174,13 +174,12 @@ class TestPhase6DatasetIntegrity(unittest.TestCase):
         # Confirm physical capacity is always > 0
         self.assertTrue((df_clean["Capacity"] > 0).all())
 
-    def test_no_fabricated_demographics(self):
-        """Verifies that no fabricated user categories (faculty, student, etc.) exist."""
+    def test_smart_parking_features_present(self):
+        """Verifies that smart parking features (Vehicle_Type, User_Type) exist."""
         df_raw = load_raw_data()
-        forbidden_keywords = ["faculty", "student", "visitor", "staff", "permit_type", "user_class"]
-        for col in df_raw.columns:
-            for kw in forbidden_keywords:
-                self.assertNotIn(kw, col.lower())
+        self.assertIn("Vehicle_Type", df_raw.columns)
+        self.assertIn("User_Type", df_raw.columns)
+        self.assertIn("Parking_Lot_Section", df_raw.columns)
 
     def test_facility_identifiers_consistency(self):
         """Verifies facility identifiers match across all analytical tables."""
@@ -193,7 +192,7 @@ class TestPhase6DatasetIntegrity(unittest.TestCase):
         stats_facs = set(stats["SystemCodeNumber"].unique())
         demand_facs = set(demands["SystemCodeNumber"].unique())
 
-        self.assertEqual(len(raw_facs), 30)
+        self.assertEqual(len(raw_facs), 4)
         self.assertEqual(raw_facs, stats_facs)
         self.assertEqual(raw_facs, demand_facs)
 
@@ -240,7 +239,7 @@ class TestPhase6EdgeCases(unittest.TestCase):
         self.assertEqual(res["summary"]["total_allocated"], 1)
 
     def test_saturation_budget_non_binding(self):
-        """Budget B >= 28,823: Budget must be mathematically non-binding with positive slack."""
+        """Budget B >= 116: Budget must be mathematically non-binding with positive slack."""
         total_allocatable = int(np.minimum(self.caps, self.dems).sum())
         excess_budget = total_allocatable + 5000
 
@@ -258,12 +257,12 @@ class TestPhase6EdgeCases(unittest.TestCase):
 
     def test_infeasible_minimum_allocations(self):
         """Sum of minimum required allocations > budget B: Must report infeasible before solve."""
-        min_allocs = [1000] * 30 # Sum = 30,000 > budget 10,000
+        min_allocs = [1000] * len(self.names)
         res = solve_parking_allocation_lp(
             facility_names=self.names,
             capacities=self.caps,
             demands=self.dems,
-            budget=10000,
+            budget=100,
             min_allocations=min_allocs
         )
         self.assertEqual(res["status"], "Infeasible Before Solve")
@@ -286,9 +285,9 @@ class TestPhase6EdgeCases(unittest.TestCase):
         )
         self.assertEqual(res["status"], "Optimal")
         allocs = res["allocations_df"]["OptimizedAllocation"].tolist()
-        self.assertEqual(allocs[0], 0) # Zero capacity gets 0
-        self.assertEqual(allocs[1], 0) # Zero demand gets 0
-        self.assertEqual(allocs[2], 200) # Normal gets min(300, 200) = 200
+        self.assertEqual(allocs[0], 0)
+        self.assertEqual(allocs[1], 0)
+        self.assertEqual(allocs[2], 200)
 
 
 if __name__ == "__main__":
